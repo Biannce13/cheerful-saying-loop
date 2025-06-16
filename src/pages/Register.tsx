@@ -7,6 +7,7 @@ import {
   EyeOff,
   Gift,
   AlertTriangle,
+  Mail,
 } from 'lucide-react';
 
 export function Register() {
@@ -16,6 +17,7 @@ export function Register() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
 
@@ -23,6 +25,7 @@ export function Register() {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess('');
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -38,8 +41,14 @@ export function Register() {
 
     try {
       await register(username, email, password);
+      setSuccess('Registration successful! You can now login with your credentials.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      const errorMessage = err instanceof Error ? err.message : 'Registration failed';
+      if (errorMessage.includes('email') && errorMessage.includes('confirmation')) {
+        setSuccess(errorMessage);
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -79,6 +88,18 @@ export function Register() {
           {error && (
             <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg text-red-300 text-sm">
               {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="mb-6 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
+              <div className="flex items-start space-x-2">
+                <Mail className="h-5 w-5 text-green-400 mt-0.5" />
+                <div>
+                  <p className="text-green-300 text-sm font-medium">Success!</p>
+                  <p className="text-green-200 text-xs">{success}</p>
+                </div>
+              </div>
             </div>
           )}
 

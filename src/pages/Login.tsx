@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Gamepad2, Eye, EyeOff } from 'lucide-react';
+import { Gamepad2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 export function Login() {
   const [username, setUsername] = useState('');
@@ -19,7 +20,8 @@ export function Login() {
     try {
       await login(username, password);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -38,8 +40,19 @@ export function Login() {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg text-red-300 text-sm">
-              {error}
+            <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+              <div className="flex items-start space-x-2">
+                <AlertCircle className="h-5 w-5 text-red-400 mt-0.5" />
+                <div>
+                  <p className="text-red-300 text-sm font-medium">Login Failed</p>
+                  <p className="text-red-200 text-xs">{error}</p>
+                  {error.includes('confirmation') && (
+                    <p className="text-red-200 text-xs mt-1">
+                      Check your email inbox and spam folder for the confirmation email.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 

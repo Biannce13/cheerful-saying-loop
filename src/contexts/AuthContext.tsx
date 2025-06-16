@@ -100,6 +100,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (error) {
+      // Check if it's an email confirmation issue
+      if (error.message.includes('email') || error.message.includes('confirm')) {
+        throw new Error('Please check your email and click the confirmation link before logging in.');
+      }
       throw new Error(error.message);
     }
 
@@ -116,6 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         data: {
           username: username,
         },
+        emailRedirectTo: `${window.location.origin}/dashboard`,
       },
     });
 
@@ -123,7 +128,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(error.message);
     }
 
-    if (data.user) {
+    // For registration, we don't automatically log in since email confirmation might be required
+    if (data.user && !data.session) {
+      // User created but needs email confirmation
+      throw new Error('Registration successful! Please check your email and click the confirmation link to complete your account setup.');
+    }
+
+    if (data.user && data.session) {
       await fetchUserProfile(data.user);
     }
   };
