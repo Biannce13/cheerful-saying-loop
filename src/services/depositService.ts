@@ -3,13 +3,13 @@ import { supabase } from '../integrations/supabase/client';
 
 export interface Deposit {
   id: string;
-  user_id: string;
+  user_id: string | null;
   amount: number;
   status: 'pending' | 'approved' | 'rejected';
-  transaction_id?: string;
-  payment_method: string;
-  created_at: string;
-  updated_at: string;
+  transaction_id?: string | null;
+  payment_method: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export async function createDeposit(amount: number, utrNumber: string): Promise<Deposit> {

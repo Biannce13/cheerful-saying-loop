@@ -5,23 +5,23 @@ export interface GamePeriod {
   id: string;
   period_id: string;
   mine_positions: number[];
-  start_time: string;
-  end_time?: string;
+  start_time: string | null;
+  end_time?: string | null;
   status: 'active' | 'completed';
 }
 
 export interface Game {
   id: string;
-  user_id: string;
-  period_id: string;
+  user_id: string | null;
+  period_id: string | null;
   bet_amount: number;
   mines_count: number;
-  revealed_positions: number[];
-  mine_positions: number[];
-  current_multiplier: number;
-  winnings: number;
+  revealed_positions: number[] | null;
+  mine_positions: number[] | null;
+  current_multiplier: number | null;
+  winnings: number | null;
   status: 'active' | 'won' | 'lost' | 'cashed_out';
-  created_at: string;
+  created_at: string | null;
 }
 
 // Generate mine positions based on mines count
@@ -74,7 +74,7 @@ export async function getCurrentGamePeriod(): Promise<GamePeriod | null> {
       return await createNewGamePeriod();
     }
 
-    return data;
+    return data as GamePeriod;
   } catch (error) {
     console.error('Error in getCurrentGamePeriod:', error);
     return null;
@@ -102,7 +102,7 @@ export async function createNewGamePeriod(): Promise<GamePeriod | null> {
       return null;
     }
 
-    return data;
+    return data as GamePeriod;
   } catch (error) {
     console.error('Error in createNewGamePeriod:', error);
     return null;
@@ -141,8 +141,10 @@ export async function startGame(betAmount: number, minesCount: number): Promise<
       throw new Error('User profile not found');
     }
 
+    const balance = userProfile.balance || 0;
+
     // Check balance (skip for admin)
-    if (!userProfile.is_admin && userProfile.balance < betAmount) {
+    if (!userProfile.is_admin && balance < betAmount) {
       throw new Error('Insufficient balance');
     }
 
@@ -159,7 +161,7 @@ export async function startGame(betAmount: number, minesCount: number): Promise<
     if (!userProfile.is_admin) {
       const { error: balanceError } = await supabase
         .from('users')
-        .update({ balance: userProfile.balance - betAmount })
+        .update({ balance: balance - betAmount })
         .eq('id', userProfile.id);
 
       if (balanceError) {
@@ -185,7 +187,7 @@ export async function startGame(betAmount: number, minesCount: number): Promise<
       throw new Error('Failed to create game');
     }
 
-    return game;
+    return game as Game;
   } catch (error) {
     console.error('Error starting game:', error);
     throw error;
@@ -215,12 +217,13 @@ export async function revealCell(gameId: string, position: number): Promise<{
     }
 
     const revealedPositions = game.revealed_positions || [];
+    const minePositions = game.mine_positions || [];
     
     if (revealedPositions.includes(position)) {
       throw new Error('Position already revealed');
     }
 
-    const isMine = game.mine_positions.includes(position);
+    const isMine = minePositions.includes(position);
     const newRevealedPositions = [...revealedPositions, position];
 
     if (isMine) {
@@ -253,7 +256,7 @@ export async function revealCell(gameId: string, position: number): Promise<{
       return {
         isMine: true,
         gameOver: true,
-        minePositions: game.mine_positions
+        minePositions: minePositions
       };
     } else {
       // Safe position
@@ -308,7 +311,8 @@ export async function cashOut(gameId: string): Promise<number> {
       throw new Error('No positions revealed yet');
     }
 
-    const winnings = game.bet_amount * game.current_multiplier;
+    const currentMultiplier = game.current_multiplier || 1.0;
+    const winnings = game.bet_amount * currentMultiplier;
 
     // Update game status
     const { error: updateError } = await supabase
@@ -327,18 +331,21 @@ export async function cashOut(gameId: string): Promise<number> {
     const { data: userProfile } = await supabase
       .from('users')
       .select('*')
-      .eq('id', game.user_id)
+      .eq('id', game.user_id || '')
       .single();
 
     if (userProfile && !userProfile.is_admin) {
+      const balance = userProfile.balance || 0;
+      const totalBets = userProfile.total_bets || 0;
+      
       // Update user balance
       await supabase
         .from('users')
         .update({ 
-          balance: userProfile.balance + winnings,
-          total_bets: userProfile.total_bets + game.bet_amount
+          balance: balance + winnings,
+          total_bets: totalBets + game.bet_amount
         })
-        .eq('id', game.user_id);
+        .eq('id', game.user_id || '');
     }
 
     // Add to game history
@@ -349,7 +356,7 @@ export async function cashOut(gameId: string): Promise<number> {
         game_id: gameId,
         bet_amount: game.bet_amount,
         mines_count: game.mines_count,
-        final_multiplier: game.current_multiplier,
+        final_multiplier: currentMultiplier,
         winnings: winnings,
         result: 'cashed_out'
       });

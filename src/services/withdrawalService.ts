@@ -3,7 +3,7 @@ import { supabase } from '../integrations/supabase/client';
 
 export interface Withdrawal {
   id: string;
-  user_id: string;
+  user_id: string | null;
   amount: number;
   status: 'pending' | 'approved' | 'rejected';
   bank_details: {
@@ -12,8 +12,8 @@ export interface Withdrawal {
     ifsc_code: string;
     account_holder_name: string;
   };
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export async function createWithdrawal(
@@ -48,18 +48,22 @@ export async function createWithdrawal(
       throw new Error('Initial deposit required');
     }
 
-    if (userProfile.total_bets < userProfile.required_bet_amount) {
+    const totalBets = userProfile.total_bets || 0;
+    const requiredBetAmount = userProfile.required_bet_amount || 200;
+    const balance = userProfile.balance || 0;
+
+    if (totalBets < requiredBetAmount) {
       throw new Error('Minimum bet requirement not met');
     }
 
-    if (userProfile.balance < amount) {
+    if (balance < amount) {
       throw new Error('Insufficient balance');
     }
 
     // Deduct amount from balance
     const { error: balanceError } = await supabase
       .from('users')
-      .update({ balance: userProfile.balance - amount })
+      .update({ balance: balance - amount })
       .eq('id', userProfile.id);
 
     if (balanceError) {

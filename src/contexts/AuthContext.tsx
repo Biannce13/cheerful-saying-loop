@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         await fetchUserProfile(session.user);
       } else {
@@ -78,11 +78,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: data.id,
           username: data.username,
           email: data.email,
-          balance: parseFloat(data.balance || '0'),
+          balance: parseFloat(String(data.balance || 0)),
           is_admin: data.is_admin || false,
           initial_deposit_made: data.initial_deposit_made || false,
           total_bets: data.total_bets || 0,
-          required_bet_amount: parseFloat(data.required_bet_amount || '200'),
+          required_bet_amount: parseFloat(String(data.required_bet_amount || 200)),
         });
       }
     } catch (error) {
