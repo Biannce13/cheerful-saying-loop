@@ -1,9 +1,10 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { mockApi } from '../services/mockApi';
+import { supabase } from '../integrations/supabase/client';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface User {
-  id: number;
+  id: string;
   username: string;
   email: string;
   balance: number;
@@ -15,9 +16,10 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (username: string, password: string) => Promise<void>;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
   refreshUser: () => Promise<void>;
 }
@@ -34,36 +36,103 @@ export function useAuth() {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      refreshUser();
-    }
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetchUserProfile(session.user);
+      } else {
+        setLoading(false);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        await fetchUserProfile(session.user);
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const fetchUserProfile = async (authUser: SupabaseUser) => {
     try {
-      const data = await mockApi.login(username, password);
-      localStorage.setItem('token', data.token);
-      setUser(data.user);
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('auth_id', authUser.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        setUser(null);
+      } else if (data) {
+        setUser({
+          id: data.id,
+          username: data.username,
+          email: data.email,
+          balance: parseFloat(data.balance || '0'),
+          is_admin: data.is_admin || false,
+          initial_deposit_made: data.initial_deposit_made || false,
+          total_bets: data.total_bets || 0,
+          required_bet_amount: parseFloat(data.required_bet_amount || '200'),
+        });
+      }
     } catch (error) {
-      throw error;
+      console.error('Error in fetchUserProfile:', error);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const login = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (data.user) {
+      await fetchUserProfile(data.user);
     }
   };
 
   const register = async (username: string, email: string, password: string) => {
-    try {
-      const data = await mockApi.register(username, email, password);
-      localStorage.setItem('token', data.token);
-      setUser(data.user);
-    } catch (error) {
-      throw error;
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          username: username,
+        },
+      },
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (data.user) {
+      await fetchUserProfile(data.user);
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      throw new Error(error.message);
+    }
     setUser(null);
   };
 
@@ -74,21 +143,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshUser = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    try {
-      const userData = await mockApi.getUserProfile(token);
-      setUser(userData);
-    } catch (error) {
-      console.error('Failed to refresh user:', error);
-      localStorage.removeItem('token');
-      setUser(null);
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (authUser) {
+      await fetchUserProfile(authUser);
     }
   };
 
   const value = {
     user,
+    loading,
     login,
     register,
     logout,

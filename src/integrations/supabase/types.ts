@@ -9,7 +9,265 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      deposits: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          payment_method: string | null
+          status: string | null
+          transaction_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          payment_method?: string | null
+          status?: string | null
+          transaction_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          payment_method?: string | null
+          status?: string | null
+          transaction_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deposits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_history: {
+        Row: {
+          bet_amount: number
+          created_at: string | null
+          final_multiplier: number | null
+          game_id: string | null
+          id: string
+          mines_count: number
+          result: string | null
+          user_id: string | null
+          winnings: number | null
+        }
+        Insert: {
+          bet_amount: number
+          created_at?: string | null
+          final_multiplier?: number | null
+          game_id?: string | null
+          id?: string
+          mines_count: number
+          result?: string | null
+          user_id?: string | null
+          winnings?: number | null
+        }
+        Update: {
+          bet_amount?: number
+          created_at?: string | null
+          final_multiplier?: number | null
+          game_id?: string | null
+          id?: string
+          mines_count?: number
+          result?: string | null
+          user_id?: string | null
+          winnings?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_history_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_periods: {
+        Row: {
+          end_time: string | null
+          id: string
+          mine_positions: number[]
+          period_id: string
+          start_time: string | null
+          status: string | null
+        }
+        Insert: {
+          end_time?: string | null
+          id?: string
+          mine_positions: number[]
+          period_id: string
+          start_time?: string | null
+          status?: string | null
+        }
+        Update: {
+          end_time?: string | null
+          id?: string
+          mine_positions?: number[]
+          period_id?: string
+          start_time?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      games: {
+        Row: {
+          bet_amount: number
+          created_at: string | null
+          current_multiplier: number | null
+          id: string
+          mine_positions: number[] | null
+          mines_count: number
+          period_id: string | null
+          revealed_positions: number[] | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+          winnings: number | null
+        }
+        Insert: {
+          bet_amount: number
+          created_at?: string | null
+          current_multiplier?: number | null
+          id?: string
+          mine_positions?: number[] | null
+          mines_count: number
+          period_id?: string | null
+          revealed_positions?: number[] | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          winnings?: number | null
+        }
+        Update: {
+          bet_amount?: number
+          created_at?: string | null
+          current_multiplier?: number | null
+          id?: string
+          mine_positions?: number[] | null
+          mines_count?: number
+          period_id?: string | null
+          revealed_positions?: number[] | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          winnings?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "games_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "game_periods"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "games_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          auth_id: string | null
+          balance: number | null
+          created_at: string | null
+          email: string
+          id: string
+          initial_deposit_made: boolean | null
+          is_admin: boolean | null
+          required_bet_amount: number | null
+          total_bets: number | null
+          updated_at: string | null
+          username: string
+        }
+        Insert: {
+          auth_id?: string | null
+          balance?: number | null
+          created_at?: string | null
+          email: string
+          id?: string
+          initial_deposit_made?: boolean | null
+          is_admin?: boolean | null
+          required_bet_amount?: number | null
+          total_bets?: number | null
+          updated_at?: string | null
+          username: string
+        }
+        Update: {
+          auth_id?: string | null
+          balance?: number | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          initial_deposit_made?: boolean | null
+          is_admin?: boolean | null
+          required_bet_amount?: number | null
+          total_bets?: number | null
+          updated_at?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
+      withdrawals: {
+        Row: {
+          amount: number
+          bank_details: Json | null
+          created_at: string | null
+          id: string
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          bank_details?: Json | null
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          bank_details?: Json | null
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
