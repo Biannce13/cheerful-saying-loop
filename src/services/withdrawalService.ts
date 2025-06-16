@@ -5,13 +5,13 @@ export interface Withdrawal {
   id: string;
   user_id: string | null;
   amount: number;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | null;
   bank_details: {
     bank_name: string;
     account_number: string;
     ifsc_code: string;
     account_holder_name: string;
-  };
+  } | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -86,7 +86,7 @@ export async function createWithdrawal(
       throw new Error('Failed to create withdrawal request');
     }
 
-    return data;
+    return data as Withdrawal;
   } catch (error) {
     console.error('Error creating withdrawal:', error);
     throw error;
@@ -120,7 +120,7 @@ export async function getWithdrawalHistory(): Promise<Withdrawal[]> {
       throw new Error('Failed to fetch withdrawal history');
     }
 
-    return data || [];
+    return (data || []) as Withdrawal[];
   } catch (error) {
     console.error('Error fetching withdrawal history:', error);
     return [];

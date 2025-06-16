@@ -5,7 +5,7 @@ export interface Deposit {
   id: string;
   user_id: string | null;
   amount: number;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | null;
   transaction_id?: string | null;
   payment_method: string | null;
   created_at: string | null;
@@ -48,7 +48,7 @@ export async function createDeposit(amount: number, utrNumber: string): Promise<
       throw new Error('Failed to create deposit request');
     }
 
-    return data;
+    return data as Deposit;
   } catch (error) {
     console.error('Error creating deposit:', error);
     throw error;
@@ -82,7 +82,7 @@ export async function getDepositHistory(): Promise<Deposit[]> {
       throw new Error('Failed to fetch deposit history');
     }
 
-    return data || [];
+    return (data || []) as Deposit[];
   } catch (error) {
     console.error('Error fetching deposit history:', error);
     return [];
