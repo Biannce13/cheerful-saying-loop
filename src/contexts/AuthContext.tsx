@@ -100,10 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (error) {
-      // Check if it's an email confirmation issue
-      if (error.message.includes('email') || error.message.includes('confirm')) {
-        throw new Error('Please check your email and click the confirmation link before logging in.');
-      }
+      console.log('Login error:', error);
       throw new Error(error.message);
     }
 
@@ -120,22 +117,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         data: {
           username: username,
         },
-        emailRedirectTo: `${window.location.origin}/dashboard`,
       },
     });
 
     if (error) {
+      console.log('Registration error:', error);
       throw new Error(error.message);
     }
 
-    // For registration, we don't automatically log in since email confirmation might be required
-    if (data.user && !data.session) {
-      // User created but needs email confirmation
-      throw new Error('Registration successful! Please check your email and click the confirmation link to complete your account setup.');
-    }
-
+    // Since email confirmation is disabled, user should be logged in immediately
     if (data.user && data.session) {
       await fetchUserProfile(data.user);
+    } else if (data.user && !data.session) {
+      // This shouldn't happen with email confirmation disabled, but just in case
+      throw new Error('Registration successful! Please try logging in with your credentials.');
     }
   };
 

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,7 +8,7 @@ import {
   EyeOff,
   Gift,
   AlertTriangle,
-  Mail,
+  CheckCircle,
 } from 'lucide-react';
 
 export function Register() {
@@ -41,14 +42,10 @@ export function Register() {
 
     try {
       await register(username, email, password);
-      setSuccess('Registration successful! You can now login with your credentials.');
+      // If we reach here, registration was successful and user is logged in
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Registration failed';
-      if (errorMessage.includes('email') && errorMessage.includes('confirmation')) {
-        setSuccess(errorMessage);
-      } else {
-        setError(errorMessage);
-      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -94,7 +91,7 @@ export function Register() {
           {success && (
             <div className="mb-6 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
               <div className="flex items-start space-x-2">
-                <Mail className="h-5 w-5 text-green-400 mt-0.5" />
+                <CheckCircle className="h-5 w-5 text-green-400 mt-0.5" />
                 <div>
                   <p className="text-green-300 text-sm font-medium">Success!</p>
                   <p className="text-green-200 text-xs">{success}</p>

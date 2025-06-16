@@ -46,11 +46,6 @@ export function Login() {
                 <div>
                   <p className="text-red-300 text-sm font-medium">Login Failed</p>
                   <p className="text-red-200 text-xs">{error}</p>
-                  {error.includes('confirmation') && (
-                    <p className="text-red-200 text-xs mt-1">
-                      Check your email inbox and spam folder for the confirmation email.
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
