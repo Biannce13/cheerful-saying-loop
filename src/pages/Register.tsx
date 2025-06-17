@@ -8,7 +8,6 @@ import {
   EyeOff,
   Gift,
   AlertTriangle,
-  CheckCircle,
 } from 'lucide-react';
 
 export function Register() {

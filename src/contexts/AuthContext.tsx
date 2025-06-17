@@ -108,13 +108,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('Creating user profile for:', authUser.email);
       const username = authUser.user_metadata?.username || authUser.email?.split('@')[0] || 'user';
       const isAdmin = authUser.email === 'admin@minex.com';
+      const userEmail = authUser.email || '';
+      
+      // Check if user already exists first
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', userEmail)
+        .single();
+
+      if (existingUser) {
+        console.log('User profile already exists, fetching...');
+        await fetchUserProfile(authUser);
+        return;
+      }
       
       const { data, error } = await supabase
         .from('users')
         .insert({
-          auth_id: authUser.id,
           username: username,
-          email: authUser.email,
+          email: userEmail,
           balance: 200.00,
           is_admin: isAdmin,
           initial_deposit_made: false,
@@ -226,7 +239,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('Registration successful:', data);
 
       // The auth state change will handle user profile creation and setting user state
-      if (!data.user || !data.session) {
+      if (!data.user) {
         throw new Error('Registration failed. Please try again.');
       }
     } catch (error) {
