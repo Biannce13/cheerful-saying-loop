@@ -17,7 +17,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (usernameOrEmail: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
@@ -64,6 +64,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchUserProfile = async (authUser: SupabaseUser) => {
     try {
       setLoading(true);
+      console.log('Fetching user profile for auth_id:', authUser.id);
+      
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -74,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('Error fetching user profile:', error);
         setUser(null);
       } else if (data) {
+        console.log('User profile found:', data);
         setUser({
           id: data.id,
           username: data.username,
@@ -93,44 +96,93 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+  const login = async (usernameOrEmail: string, password: string) => {
+    try {
+      console.log('Attempting login with:', usernameOrEmail);
+      
+      let email = usernameOrEmail;
+      
+      // If the input doesn't contain @, it's likely a username, so we need to find the email
+      if (!usernameOrEmail.includes('@')) {
+        console.log('Username provided, looking up email...');
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('email')
+          .eq('username', usernameOrEmail)
+          .single();
 
-    if (error) {
-      console.log('Login error:', error);
-      throw new Error(error.message);
-    }
+        if (userError || !userData) {
+          console.error('User not found by username:', userError);
+          throw new Error('Invalid username or password');
+        }
+        
+        email = userData.email;
+        console.log('Found email for username:', email);
+      }
 
-    if (data.user) {
-      await fetchUserProfile(data.user);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('Supabase login error:', error);
+        throw new Error('Invalid login credentials');
+      }
+
+      console.log('Login successful:', data);
+      
+      if (data.user) {
+        await fetchUserProfile(data.user);
+      }
+    } catch (error) {
+      console.error('Login process error:', error);
+      throw error;
     }
   };
 
   const register = async (username: string, email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          username: username,
+    try {
+      console.log('Attempting registration:', { username, email });
+      
+      // Check if username already exists
+      const { data: existingUser, error: checkError } = await supabase
+        .from('users')
+        .select('username')
+        .eq('username', username)
+        .single();
+
+      if (existingUser) {
+        throw new Error('Username already exists');
+      }
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username: username,
+          },
         },
-      },
-    });
+      });
 
-    if (error) {
-      console.log('Registration error:', error);
-      throw new Error(error.message);
-    }
+      if (error) {
+        console.error('Registration error:', error);
+        throw new Error(error.message);
+      }
 
-    // Since email confirmation is disabled, user should be logged in immediately
-    if (data.user && data.session) {
-      await fetchUserProfile(data.user);
-    } else if (data.user && !data.session) {
-      // This shouldn't happen with email confirmation disabled, but just in case
-      throw new Error('Registration successful! Please try logging in with your credentials.');
+      console.log('Registration successful:', data);
+
+      // Since email confirmation is disabled, user should be logged in immediately
+      if (data.user && data.session) {
+        await fetchUserProfile(data.user);
+      } else if (data.user && !data.session) {
+        // This shouldn't happen with email confirmation disabled, but just in case
+        throw new Error('Registration successful! Please try logging in with your credentials.');
+      }
+    } catch (error) {
+      console.error('Registration process error:', error);
+      throw error;
     }
   };
 

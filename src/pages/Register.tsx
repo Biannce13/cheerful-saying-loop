@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Gamepad2,
@@ -21,6 +21,7 @@ export function Register() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,9 +42,12 @@ export function Register() {
     }
 
     try {
+      console.log('Submitting registration form...');
       await register(username, email, password);
-      // If we reach here, registration was successful and user is logged in
+      console.log('Registration successful, navigating to dashboard...');
+      navigate('/dashboard');
     } catch (err) {
+      console.error('Registration failed:', err);
       const errorMessage = err instanceof Error ? err.message : 'Registration failed';
       setError(errorMessage);
     } finally {
