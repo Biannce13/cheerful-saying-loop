@@ -18,16 +18,22 @@ export function Register() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const { register, user } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if user is already logged in
+  React.useEffect(() => {
+    if (user) {
+      console.log('User already logged in, redirecting to dashboard');
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    setSuccess('');
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -44,13 +50,12 @@ export function Register() {
     try {
       console.log('Submitting registration form...');
       await register(username, email, password);
-      console.log('Registration successful, navigating to dashboard...');
-      navigate('/dashboard');
+      console.log('Registration successful, user should be redirected automatically');
+      // Navigation will happen automatically when user state changes
     } catch (err) {
       console.error('Registration failed:', err);
       const errorMessage = err instanceof Error ? err.message : 'Registration failed';
       setError(errorMessage);
-    } finally {
       setLoading(false);
     }
   };
@@ -79,8 +84,7 @@ export function Register() {
               <div>
                 <p className="text-blue-300 text-sm font-medium">Important:</p>
                 <p className="text-blue-200 text-xs">
-                  Use a valid email and save your password securely. It helps us
-                  recover your account safely.
+                  Use a valid email and save your password securely. Register with admin@minex.com to get admin access.
                 </p>
               </div>
             </div>
@@ -89,18 +93,6 @@ export function Register() {
           {error && (
             <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg text-red-300 text-sm">
               {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="mb-6 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
-              <div className="flex items-start space-x-2">
-                <CheckCircle className="h-5 w-5 text-green-400 mt-0.5" />
-                <div>
-                  <p className="text-green-300 text-sm font-medium">Success!</p>
-                  <p className="text-green-200 text-xs">{success}</p>
-                </div>
-              </div>
             </div>
           )}
 
@@ -128,7 +120,7 @@ export function Register() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
-                placeholder="Enter your email"
+                placeholder="Enter your email (use admin@minex.com for admin)"
                 required
               />
             </div>

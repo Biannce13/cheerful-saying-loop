@@ -49,7 +49,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email);
       if (session?.user) {
         await fetchUserProfile(session.user);
       } else {
@@ -74,6 +75,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Error fetching user profile:', error);
+        // If user profile doesn't exist, create it
+        if (error.code === 'PGRST116') {
+          console.log('User profile not found, creating new profile...');
+          await createUserProfile(authUser);
+          return;
+        }
         setUser(null);
       } else if (data) {
         console.log('User profile found:', data);
@@ -96,8 +103,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const createUserProfile = async (authUser: SupabaseUser) => {
+    try {
+      console.log('Creating user profile for:', authUser.email);
+      const username = authUser.user_metadata?.username || authUser.email?.split('@')[0] || 'user';
+      const isAdmin = authUser.email === 'admin@minex.com';
+      
+      const { data, error } = await supabase
+        .from('users')
+        .insert({
+          auth_id: authUser.id,
+          username: username,
+          email: authUser.email,
+          balance: 200.00,
+          is_admin: isAdmin,
+          initial_deposit_made: false,
+          total_bets: 0,
+          required_bet_amount: 200.00
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating user profile:', error);
+        throw error;
+      }
+
+      console.log('User profile created successfully:', data);
+      setUser({
+        id: data.id,
+        username: data.username,
+        email: data.email,
+        balance: parseFloat(String(data.balance || 0)),
+        is_admin: data.is_admin || false,
+        initial_deposit_made: data.initial_deposit_made || false,
+        total_bets: data.total_bets || 0,
+        required_bet_amount: parseFloat(String(data.required_bet_amount || 200)),
+      });
+    } catch (error) {
+      console.error('Error in createUserProfile:', error);
+      throw error;
+    }
+  };
+
   const login = async (usernameOrEmail: string, password: string) => {
     try {
+      setLoading(true);
       console.log('Attempting login with:', usernameOrEmail);
       
       let email = usernameOrEmail;
@@ -128,22 +179,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Supabase login error:', error);
-        throw new Error('Invalid login credentials');
+        throw new Error('Invalid username or password');
       }
 
       console.log('Login successful:', data);
-      
-      if (data.user) {
-        await fetchUserProfile(data.user);
-      }
+      // Don't manually call fetchUserProfile here, let the auth state change handle it
     } catch (error) {
       console.error('Login process error:', error);
+      setLoading(false);
       throw error;
     }
   };
 
   const register = async (username: string, email: string, password: string) => {
     try {
+      setLoading(true);
       console.log('Attempting registration:', { username, email });
       
       // Check if username already exists
@@ -175,16 +225,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('Registration successful:', data);
 
-      // User should be logged in immediately since email confirmation is disabled
-      if (data.user && data.session) {
-        console.log('User registered and logged in, fetching profile...');
-        await fetchUserProfile(data.user);
-      } else {
-        console.log('Registration completed but no session found');
-        throw new Error('Registration completed. Please try logging in.');
+      // The auth state change will handle user profile creation and setting user state
+      if (!data.user || !data.session) {
+        throw new Error('Registration failed. Please try again.');
       }
     } catch (error) {
       console.error('Registration process error:', error);
+      setLoading(false);
       throw error;
     }
   };
@@ -216,7 +263,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     register,
     logout,
-    updateUser,
+    updateUser,  
     refreshUser,
   };
 

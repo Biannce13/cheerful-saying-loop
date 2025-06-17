@@ -10,8 +10,16 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if user is already logged in
+  React.useEffect(() => {
+    if (user) {
+      console.log('User already logged in, redirecting to dashboard');
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,13 +29,12 @@ export function Login() {
     try {
       console.log('Submitting login form...');
       await login(usernameOrEmail, password);
-      console.log('Login successful, navigating to dashboard...');
-      navigate('/dashboard');
+      console.log('Login successful, user should be redirected automatically');
+      // Navigation will happen automatically when user state changes
     } catch (err) {
       console.error('Login failed:', err);
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
       setError(errorMessage);
-    } finally {
       setLoading(false);
     }
   };
