@@ -120,6 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Found email for username:', email);
       }
 
+      console.log('Attempting Supabase login with email:', email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -146,7 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('Attempting registration:', { username, email });
       
       // Check if username already exists
-      const { data: existingUser, error: checkError } = await supabase
+      const { data: existingUser } = await supabase
         .from('users')
         .select('username')
         .eq('username', username)
@@ -156,6 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Username already exists');
       }
 
+      console.log('Username available, proceeding with Supabase registration...');
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -173,12 +175,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('Registration successful:', data);
 
-      // Since email confirmation is disabled, user should be logged in immediately
+      // User should be logged in immediately since email confirmation is disabled
       if (data.user && data.session) {
+        console.log('User registered and logged in, fetching profile...');
         await fetchUserProfile(data.user);
-      } else if (data.user && !data.session) {
-        // This shouldn't happen with email confirmation disabled, but just in case
-        throw new Error('Registration successful! Please try logging in with your credentials.');
+      } else {
+        console.log('Registration completed but no session found');
+        throw new Error('Registration completed. Please try logging in.');
       }
     } catch (error) {
       console.error('Registration process error:', error);
